@@ -48,12 +48,11 @@ export class UserService {
     }
   }
 
-  async SignIn({ authText, password }) {
+  async SignIn({ email, password }) {
     try {
       let data;
-      if (authText.includes("@"))
-        data = await this.userRepo.GetUserWithEmail(authText);
-      else data = await this.userRepo.GetUserWithUsername(authText);
+      console.log("service: ", email);
+      data = await this.userRepo.GetUserWithEmail(email);
       console.log(data);
       if (!data.success) return data;
       const validPassword = await compare(password, data.user.password);
@@ -81,7 +80,9 @@ export class UserService {
 
   async HandleUserLogout(uid, refreshToken) {
     try {
+      console.log("entered services");
       const data = await this.userRepo.DeleteRefreshToken(uid);
+      console.log("exit services");
       return data;
     } catch (e) {
       console.log("Error at user service layer", e);

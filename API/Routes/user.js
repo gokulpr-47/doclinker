@@ -3,16 +3,16 @@ const router = Router();
 
 import { UserService } from "../../services/user.js";
 
-import { UserRepository } from "../../database/Repository/user.js";
+import UserRepository from "../../database/Repository/user.js";
 
 import auth from "../MIddlewares/auth.js";
 
-const userservice = new UserService();
-
 const userRepo = new UserRepository();
+const userservice = new UserService(userRepo);
 
 router.post("/signup", async (req, res) => {
   try {
+    console.log("req.body: ", req.body);
     const { username, email, password } = req.body;
     const data = await userservice.SignUp({ username, email, password });
     console.log("DATA: ", data);
@@ -34,9 +34,9 @@ router.post("/signup", async (req, res) => {
 
 router.post("/signin", async (req, res) => {
   try {
-    const { authText, password } = req.body;
+    const { email, password } = req.body;
     console.log(req.body);
-    const data = await userservice.SignIn({ authText, password });
+    const data = await userservice.SignIn({ email, password });
     if (data.success) {
       res.cookie("rt", data.refreshToken, {
         httpOnly: true,
@@ -77,6 +77,7 @@ router.post("/logout/:uid", async (req, res) => {
     const refreshToken = cookies.rt;
     const { uid } = req.params;
     const data = await userservice.HandleUserLogout(uid, refreshToken);
+    console.log("exit routes");
     res.clearCookie("rt");
     return res.status(200).json(data);
   } catch (e) {

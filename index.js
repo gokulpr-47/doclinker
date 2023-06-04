@@ -10,6 +10,9 @@ const server = createServer(app);
   await connectDB();
 })();
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.get("/", (req, res) => {
   res.send("hello there");
 });

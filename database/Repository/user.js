@@ -1,4 +1,5 @@
 import userModel from "../models/user.js";
+import refreshTokenModel from "../models/refreshToken.js";
 
 class UserRepository {
   async CreateUser({ username, email, password }) {
@@ -13,6 +14,89 @@ class UserRepository {
       return { success: false, message: "server-error" };
     }
   }
+
+  async CreateRefreshToken(refreshToken, uid) {
+    try {
+      await refreshTokenModel.create({ refreshToken, user_id: uid });
+    } catch (e) {
+      console.log("Error at the user repository:", e);
+      return { success: false, message: e };
+    }
+  }
+
+  async GetUserWithEmail(email) {
+    try {
+      console.log(email);
+      const user = await userModel.findOne({ email }).lean();
+      console.log(user);
+      if (user) return { success: true, user };
+      return { success: false, message: "Enter the correct credentials" };
+    } catch (e) {
+      console.log("Error at user Repository layer", e);
+      return { success: false, message: "server-error", error: e };
+    }
+  }
+
+  async DeleteRefreshToken(user_id) {
+    try {
+      const data = await refreshTokenModel.findOneAndDelete({ user_id });
+      if (data) return { success: true };
+      return { success: false, message: "user_id invalid" };
+    } catch (e) {
+      console.log("Error at user Repository layer", e);
+      return { success: false, message: e };
+    }
+  }
+
+  async FindRefreshTokenWithUserDetails(refreshToken) {
+    try {
+      const data = await refreshTokenModel.aggregate([
+        {
+          $match: { refreshToken },
+        },
+        {
+          $addFields: { uid: { $toObjectId: "$user_id" } },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "uid",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $addFields: { user: { $first: "$user" } },
+        },
+        {
+          $project: {
+            uid: 0,
+            "user.password": 0,
+          },
+        },
+      ]);
+      // console.log("data from aggregate function", data);
+      if (data) {
+        return { success: true, refreshToken: data[0] };
+      }
+      return { success: false, message: "Refresh Token Not found" };
+    } catch (e) {
+      console.log("Error at user Repository layer", e);
+      return { success: false, error: e };
+    }
+  }
+
+  async GetRefreshTokenWithUID(uid) {
+    try {
+      const refreshToken = await refreshTokenModel.findOne({ user_id: uid });
+      if (refreshToken)
+        return { success: true, refreshToken: refreshToken.refreshToken };
+      return { success: false, refreshToken: null };
+    } catch (e) {
+      console.log("error at user respository layer:", e);
+      return { success: false, message: e };
+    }
+  }
 }
 
-export { UserRepository };
+export default UserRepository;
